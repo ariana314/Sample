@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحه مشتری</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .form-container { margin-bottom: 20px; }
+        .prize-list { margin-top: 20px; text-align: left; }
+        .prize-list table { width: 100%; border-collapse: collapse; }
+        .prize-list th, .prize-list td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+        .prize-list th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>صفحه مشتری</h1>
+
+        <!-- نمایش جوایز -->
+        <div class="prize-list" id="prizeList">
+            <h2>لیست جوایز</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>جایزه</th>
+                    </tr>
+                </thead>
+                <tbody id="prizesBody">
+                    <!-- جوایز در اینجا نمایش داده می‌شوند -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- فرم ثبت‌نام -->
+        <div class="form-container">
+            <input type="text" id="phoneNumber" placeholder="شماره تلفن خود را وارد کنید" required><br><br>
+            <button onclick="register()">ثبت‌نام و شرکت در قرعه‌کشی</button>
+        </div>
+
+        <!-- نمایش خبر -->
+        <div id="news">
+            <h3>خبر مدیر</h3>
+            <p id="newsContent"></p>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        let prizes = JSON.parse(localStorage.getItem('prizes')) || []; // جوایز موجود در localStorage
+        let winners = JSON.parse(localStorage.getItem('winners')) || []; // برندگان موجود در localStorage
+        let news = localStorage.getItem('news') || ""; // خبر موجود در localStorage
+
+        // نمایش جوایز
+        function showPrizes() {
+            const prizeListBody = document.getElementById('prizesBody');
+            prizeListBody.innerHTML = ""; // پاک کردن محتوای قبلی
+
+            prizes.forEach(function(prize) {
+                const row = document.createElement('tr');
+                const prizeCell = document.createElement('td');
+                prizeCell.textContent = prize;
+                row.appendChild(prizeCell);
+                prizeListBody.appendChild(row);
+            });
+        }
+
+        // ثبت‌نام و شرکت در قرعه‌کشی
+        function register() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            if (!phoneNumber) {
+                alert('لطفاً شماره تلفن خود را وارد کنید');
+                return;
+            }
+
+            // جلوگیری از ثبت‌نام دوباره با شماره تکراری
+            const existingWinner = winners.find(winner => winner.phoneNumber === phoneNumber);
+            if (existingWinner) {
+                alert('شما قبلاً در قرعه‌کشی شرکت کرده‌اید');
+                return;
+            }
+
+            const prize = prizes[Math.floor(Math.random() * prizes.length)];
+            const winner = {
+                phoneNumber: phoneNumber,
+                date: new Date().toLocaleString(),
+                prize: prize
+            };
+            winners.push(winner);
+            localStorage.setItem('winners', JSON.stringify(winners));
+
+            showResult(winner); // نمایش نتیجه قرعه‌کشی
+        }
+
+        // نمایش نتیجه قرعه‌کشی
+        function showResult(winner) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `تبریک! شما برنده شدید. شماره تلفن شما: ${winner.phoneNumber}<br>جایزه شما: ${winner.prize}`;
+        }
+
+        // نمایش خبر از طرف مدیر
+        function showNews() {
+            document.getElementById('newsContent').textContent = news;
+        }
+
+        showPrizes();
+        showNews();
+    </script>
+</body>
+</html>

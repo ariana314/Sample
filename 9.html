@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحه مدیریت</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .form-container { margin-bottom: 20px; }
+        .result { margin-top: 20px; font-size: 1.2em; color: green; }
+        .prize-list { margin-top: 20px; text-align: left; }
+        .prize-list table { width: 100%; border-collapse: collapse; }
+        .prize-list th, .prize-list td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+        .prize-list th { background-color: #f4f4f4; }
+        .prize-list td button { margin: 0 5px; }
+        #adminOptions { display: none; } /* مخفی کردن بخش‌های مدیریت تا وارد کردن رمز */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>صفحه مدیریت</h1>
+
+        <!-- فرم وارد کردن رمز عبور -->
+        <div class="form-container">
+            <input type="password" id="adminPassword" placeholder="رمز عبور را وارد کنید" required><br><br>
+            <button onclick="checkPassword()">ورود</button>
+        </div>
+
+        <!-- بخش‌های مدیریت که پس از وارد کردن رمز نمایش داده می‌شوند -->
+        <div id="adminOptions">
+            <!-- نمایش لیست برندگان -->
+            <div class="prize-list" id="winnerList">
+                <h2>لیست برندگان</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>شماره تلفن</th>
+                            <th>تاریخ ثبت‌نام</th>
+                            <th>جایزه</th>
+                        </tr>
+                    </thead>
+                    <tbody id="winnersListBody">
+                        <!-- برندگان و جوایز آنها در اینجا نمایش داده می‌شوند -->
+                    </tbody>
+                </table>
+                <button onclick="resetDuplicateNumbers()">ریست کردن اسامی تکراری</button>
+                <br>
+                <button onclick="clearWinnerList()">پاک کردن لیست برندگان</button>
+            </div>
+
+            <!-- نمایش لیست جوایز -->
+            <div class="prize-list" id="prizeList">
+                <h2>لیست جوایز</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>جایزه</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prizeListBody">
+                        <!-- جوایز در اینجا نمایش داده می‌شوند -->
+                    </tbody>
+                </table>
+                <br>
+                <button onclick="showAddPrizeForm()">اضافه کردن جایزه جدید</button>
+            </div>
+
+            <!-- فرم اضافه کردن جوایز -->
+            <div id="addPrizeForm" style="display: none;">
+                <h2>اضافه کردن جایزه جدید</h2>
+                <input type="text" id="newPrize" placeholder="جایزه جدید را وارد کنید"><br><br>
+                <button onclick="addPrize()">اضافه کردن جایزه</button>
+            </div>
+
+            <!-- فرم ارسال خبر -->
+            <div id="sendNewsForm">
+                <h2>ارسال خبر به مشتریان</h2>
+                <textarea id="newsText" placeholder="متن خبر را وارد کنید" rows="4" cols="50"></textarea><br><br>
+                <button onclick="sendNews()">ارسال خبر</button>
+            </div>
+        </div>
+
+        <div class="result" id="result" style="display: none;">
+            <!-- پیام‌های مختلف در اینجا نمایش داده می‌شود -->
+        </div>
+    </div>
+
+    <script>
+        const correctPassword = "1235"; // رمز عبور صحیح
+        let prizes = JSON.parse(localStorage.getItem('prizes')) || []; // جوایز موجود در localStorage
+        let winners = JSON.parse(localStorage.getItem('winners')) || []; // برندگان موجود در localStorage
+        let news = localStorage.getItem('news') || ''; // آخرین خبر ارسال شده
+
+        // چک کردن رمز عبور و نمایش بخش‌های مدیریت
+        function checkPassword() {
+            const password = document.getElementById('adminPassword').value;
+            if (password === correctPassword) {
+                document.getElementById('adminOptions').style.display = 'block'; // نمایش بخش‌های مدیریت
+                showPrizeList(); // نمایش لیست جوایز
+                showWinnerList(); // نمایش لیست برندگان
+            } else {
+                alert('رمز عبور اشتباه است!');
+            }
+        }
+
+        // نمایش لیست جوایز
+        function showPrizeList() {
+            const prizeListBody = document.getElementById('prizeListBody');
+            prizeListBody.innerHTML = ""; // پاک کردن محتوای قبلی
+
+            prizes.forEach(function(prize, index) {
+                const row = document.createElement('tr');
+                const prizeCell = document.createElement('td');
+                const actionsCell = document.createElement('td');
+
+                prizeCell.textContent = prize;
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'حذف';
+                deleteButton.onclick = () => removePrize(index);
+                const editButton = document.createElement('button');
+                editButton.textContent = 'ویرایش';
+                editButton.onclick = () => editPrize(index);
+
+                actionsCell.appendChild(editButton);
+                actionsCell.appendChild(deleteButton);
+
+                row.appendChild(prizeCell);
+                row.appendChild(actionsCell);
+                prizeListBody.appendChild(row);
+            });
+        }
+
+        // نمایش لیست برندگان و جوایز آنها
+        function showWinnerList() {
+            const winnersListBody = document.getElementById('winnersListBody');
+            winnersListBody.innerHTML = ""; // پاک کردن محتوای قبلی
+
+            winners.forEach(function(winner) {
+                const row = document.createElement('tr');
+                const phoneCell = document.createElement('td');
+                const dateCell = document.createElement('td');
+                const prizeCell = document.createElement('td');
+
+                phoneCell.textContent = winner.phoneNumber;
+                dateCell.textContent = winner.date;
+                prizeCell.textContent = winner.prize || "هنوز جایزه‌ای اختصاص نیافته";
+
+                row.appendChild(phoneCell);
+                row.appendChild(dateCell);
+                row.appendChild(prizeCell);
+                winnersListBody.appendChild(row);
+            });
+        }
+
+        // ریست کردن اسامی تکراری در لیست برندگان
+        function resetDuplicateNumbers() {
+            const uniqueWinners = [];
+            const seenNumbers = new Set();
+
+            winners.forEach(function(winner) {
+                if (!seenNumbers.has(winner.phoneNumber)) {
+                    seenNumbers.add(winner.phoneNumber);
+                    uniqueWinners.push(winner);
+                }
+            });
+
+            winners = uniqueWinners;
+            localStorage.setItem('winners', JSON.stringify(winners));
+            showWinnerList(); // به‌روزرسانی نمایش لیست برندگان
+            alert('اسامی تکراری پاک شدند.');
+        }
+
+        // پاک کردن لیست برندگان
+        function clearWinnerList() {
+            if (confirm("آیا مطمئن هستید که می‌خواهید تمام برندگان را پاک کنید؟")) {
+                winners = [];
+                localStorage.setItem('winners', JSON.stringify(winners));
+                showWinnerList(); // به‌روزرسانی نمایش لیست برندگان
+                alert('لیست برندگان پاک شد.');
+            }
+        }
+
+        // نمایش فرم اضافه کردن جایزه
+        function showAddPrizeForm() {
+            document.getElementById('addPrizeForm').style.display = 'block';
+        }
+
+        // اضافه کردن جایزه جدید
+        function addPrize() {
+            const prize = document.getElementById('newPrize').value;
+            if (prize) {
+                prizes.push(prize);
+                localStorage.setItem('prizes', JSON.stringify(prizes));
+                alert('جایزه با موفقیت اضافه شد!');
+                document.getElementById('newPrize').value = ''; // پاک کردن فیلد ورودی
+                showPrizeList(); // به‌روزرسانی لیست جوایز
+            } else {
+                alert('لطفاً یک جایزه وارد کنید!');
+            }
+        }
+
+        // حذف جایزه
+        function removePrize(index) {
+            prizes.splice(index, 1); // حذف جایزه از لیست
+            localStorage.setItem('prizes', JSON.stringify(prizes));
+            showPrizeList(); // به‌روزرسانی لیست جوایز
+        }
+
+        // ویرایش جایزه
+        function editPrize(index) {
+            const newPrize = prompt('جایزه جدید را وارد کنید:', prizes[index]);
+            if (newPrize) {
+                prizes[index] = newPrize;
+                localStorage.setItem('prizes', JSON.stringify(prizes));
+                showPrizeList(); // به‌روزرسانی لیست جوایز
+            }
+        }
+
+        // ارسال خبر به مشتریان
+        function sendNews() {
+            const newsText = document.getElementById('newsText').value;
+            if (newsText) {
+                localStorage.setItem('news', newsText); // ذخیره خبر در localStorage
+                alert('خبر با موفقیت ارسال شد!');
+                document.getElementById('newsText').value = ''; // پاک کردن فیلد ورودی
+            } else {
+                alert('لطفاً یک خبر وارد کنید!');
+            }
+        }
+    </script>
+</body>
+</html>
